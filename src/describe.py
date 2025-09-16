@@ -22,7 +22,9 @@ class Describe():
             print(f"{truncated:>{col_width}}", end="")
         print()
         
-        stats_names = ['Count', 'Mean', 'Std', 'Min', '25%', '50%', '75%', 'Max']
+        # Stats de base + bonus
+        stats_names = ['Count', 'Mean', 'Std', 'Min', '10%', '25%', '50%', '75%', '90%', 'Max', 
+                       'Range', 'IQR', 'Variance', 'Skewness', 'Kurtosis', 'MAD', 'Outliers']
         
         for stat_name in stats_names:
             print(f"{stat_name:>10}", end="")
@@ -37,10 +39,19 @@ class Describe():
             'Mean': self._get_mean(feature_name),
             'Std': self._get_std(feature_name),
             'Min': self._get_min(feature_name),
+            '10%': self._get_percentile(feature_name, 10),
             '25%': self._get_percentile(feature_name, 25),
             '50%': self._get_percentile(feature_name, 50),
             '75%': self._get_percentile(feature_name, 75),
-            'Max': self._get_max(feature_name)
+            '90%': self._get_percentile(feature_name, 90),
+            'Max': self._get_max(feature_name),
+            'Range': self._get_range(feature_name),
+            'IQR': self._get_iqr(feature_name),
+            'Variance': self._get_variance(feature_name),
+            'Skewness': self._get_skewness(feature_name),
+            'Kurtosis': self._get_kurtosis(feature_name),
+            'MAD': self._get_median_absolute_deviation(feature_name),
+            'Outliers': self._get_outliers_count(feature_name)
         }
     
     def _get_numeric_features(self):
@@ -102,6 +113,92 @@ class Describe():
             
             weight = index - lower_index
             return float(lower_value + weight * (upper_value - lower_value))
+
+    # BONUS METHOds
+    def _get_variance(self, feature_name: str) -> float:
+        """Variance (carré de l'écart-type)"""
+        std = self._get_std(feature_name)
+        if pd.isna(std):
+            return float('nan')
+        return std ** 2
+
+    def _get_range(self, feature_name: str) -> float:
+        """Étendue (Max - Min)"""
+        max_val = self._get_max(feature_name)
+        min_val = self._get_min(feature_name)
+        if pd.isna(max_val) or pd.isna(min_val):
+            return float('nan')
+        return max_val - min_val
+
+    def _get_iqr(self, feature_name: str) -> float:
+        """Écart interquartile (Q3 - Q1)"""
+        q75 = self._get_percentile(feature_name, 75)
+        q25 = self._get_percentile(feature_name, 25)
+        if pd.isna(q75) or pd.isna(q25):
+            return float('nan')
+        return q75 - q25
+
+    def _get_skewness(self, feature_name: str) -> float:
+        """Asymétrie de la distribution"""
+        column_data = self.df[feature_name].dropna()
+        if len(column_data) < 3:
+            return float('nan')
+        
+        mean = self._get_mean(feature_name)
+        std = self._get_std(feature_name)
+        if std == 0 or pd.isna(std):
+            return float('nan')
+        
+        n = len(column_data)
+        skew = sum(((x - mean) / std) ** 3 for x in column_data) / n
+        return skew
+
+    def _get_kurtosis(self, feature_name: str) -> float:
+        """Aplatissement de la distribution"""
+        column_data = self.df[feature_name].dropna()
+        if len(column_data) < 4:
+            return float('nan')
+        
+        mean = self._get_mean(feature_name)
+        std = self._get_std(feature_name)
+        if std == 0 or pd.isna(std):
+            return float('nan')
+        
+        n = len(column_data)
+        kurt = sum(((x - mean) / std) ** 4 for x in column_data) / n - 3
+        return kurt
+
+    def _get_median_absolute_deviation(self, feature_name: str) -> float:
+        """MAD - Médiane des écarts absolus à la médiane"""
+        column_data = self.df[feature_name].dropna()
+        if len(column_data) == 0:
+            return float('nan')
+        
+        median = self._get_percentile(feature_name, 50)
+        deviations = [abs(x - median) for x in column_data]
+        sorted_deviations = sorted(deviations)
+        n = len(sorted_deviations)
+        
+        if n % 2 == 0:
+            return (sorted_deviations[n//2 - 1] + sorted_deviations[n//2]) / 2
+        else:
+            return sorted_deviations[n//2]
+
+    def _get_outliers_count(self, feature_name: str) -> float:
+        """Nombre de valeurs aberrantes (méthode IQR)"""
+        q25 = self._get_percentile(feature_name, 25)
+        q75 = self._get_percentile(feature_name, 75)
+        iqr = self._get_iqr(feature_name)
+        
+        if pd.isna(q25) or pd.isna(q75) or pd.isna(iqr):
+            return float('nan')
+        
+        lower_bound = q25 - 1.5 * iqr
+        upper_bound = q75 + 1.5 * iqr
+        
+        column_data = self.df[feature_name].dropna()
+        outliers = [x for x in column_data if x < lower_bound or x > upper_bound]
+        return float(len(outliers))
 
 def main():
     describe = Describe("datasets/dataset_train.csv")
