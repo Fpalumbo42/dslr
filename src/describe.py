@@ -5,24 +5,26 @@ from typing import List, Dict, Any
 class Describe():
     
     def __init__(self, filepath: str):
+
         self.df = pd.read_csv(filepath)
         
     def _truncate_name(self, name: str, max_len: int = 15) -> str:
+
         if len(name) <= max_len:
             return name
         return name[:max_len-3] + "..."
 
     def print_data(self):
+
         numeric_features = self._get_numeric_features()
-        col_width = 14
+        col_width = 12
         
         print(f"{'':>10}", end="")
         for feature in numeric_features:
             truncated = self._truncate_name(feature, col_width-2)
             print(f"{truncated:>{col_width}}", end="")
         print()
-        
-        # Stats de base + bonus
+
         stats_names = ['Count', 'Mean', 'Std', 'Min', '10%', '25%', '50%', '75%', '90%', 'Max', 
                        'Range', 'IQR', 'Variance', 'Skewness', 'Kurtosis', 'MAD', 'Outliers']
         
@@ -34,6 +36,7 @@ class Describe():
             print()
 
     def _calculate_stats(self, feature_name: str) -> Dict[str, float]:
+
         return {
             'Count': self._get_count(feature_name),
             'Mean': self._get_mean(feature_name),
@@ -55,20 +58,24 @@ class Describe():
         }
     
     def _get_numeric_features(self):
+
         numeric_cols = self.df.select_dtypes(include=[np.number]).columns.tolist()
         return [col for col in numeric_cols if col != 'Index']
     
     def _get_count(self, feature_name: str) -> float:
+
         column_data = self.df[feature_name].dropna()
         return float(len(column_data))
 
     def _get_mean(self, feature_name: str) -> float:
+
         column_data = self.df[feature_name].dropna()
         if len(column_data) == 0:
             return float('nan')
         return sum(column_data) / len(column_data)
     
     def _get_std(self, feature_name: str) -> float:
+
         column_data = self.df[feature_name].dropna()
         if len(column_data) <= 1:
             return float('nan')
@@ -78,18 +85,21 @@ class Describe():
         return variance ** 0.5
     
     def _get_min(self, feature_name: str) -> float:
+
         column_data = self.df[feature_name].dropna()
         if len(column_data) == 0:
             return float('nan')
         return float(min(column_data))
     
     def _get_max(self, feature_name: str) -> float:
+
         column_data = self.df[feature_name].dropna()
         if len(column_data) == 0:
             return float('nan')
         return float(max(column_data))
     
     def _get_percentile(self, feature_name: str, percentile: float) -> float:
+
         column_data = self.df[feature_name].dropna()
         if len(column_data) == 0:
             return float('nan')
@@ -116,14 +126,14 @@ class Describe():
 
     # BONUS METHOds
     def _get_variance(self, feature_name: str) -> float:
-        """Variance (carré de l'écart-type)"""
+
         std = self._get_std(feature_name)
         if pd.isna(std):
             return float('nan')
         return std ** 2
 
     def _get_range(self, feature_name: str) -> float:
-        """Étendue (Max - Min)"""
+
         max_val = self._get_max(feature_name)
         min_val = self._get_min(feature_name)
         if pd.isna(max_val) or pd.isna(min_val):
@@ -131,7 +141,7 @@ class Describe():
         return max_val - min_val
 
     def _get_iqr(self, feature_name: str) -> float:
-        """Écart interquartile (Q3 - Q1)"""
+    
         q75 = self._get_percentile(feature_name, 75)
         q25 = self._get_percentile(feature_name, 25)
         if pd.isna(q75) or pd.isna(q25):
@@ -139,7 +149,7 @@ class Describe():
         return q75 - q25
 
     def _get_skewness(self, feature_name: str) -> float:
-        """Asymétrie de la distribution"""
+
         column_data = self.df[feature_name].dropna()
         if len(column_data) < 3:
             return float('nan')
@@ -154,7 +164,7 @@ class Describe():
         return skew
 
     def _get_kurtosis(self, feature_name: str) -> float:
-        """Aplatissement de la distribution"""
+
         column_data = self.df[feature_name].dropna()
         if len(column_data) < 4:
             return float('nan')
@@ -169,7 +179,7 @@ class Describe():
         return kurt
 
     def _get_median_absolute_deviation(self, feature_name: str) -> float:
-        """MAD - Médiane des écarts absolus à la médiane"""
+
         column_data = self.df[feature_name].dropna()
         if len(column_data) == 0:
             return float('nan')
@@ -185,7 +195,7 @@ class Describe():
             return sorted_deviations[n//2]
 
     def _get_outliers_count(self, feature_name: str) -> float:
-        """Nombre de valeurs aberrantes (méthode IQR)"""
+
         q25 = self._get_percentile(feature_name, 25)
         q75 = self._get_percentile(feature_name, 75)
         iqr = self._get_iqr(feature_name)
