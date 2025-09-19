@@ -10,47 +10,81 @@ class Histogram:
         self.houses = ['Gryffindor', 'Hufflepuff', 'Ravenclaw', 'Slytherin']
         self.output_dir = "histograms"
         self._create_output_directory()
+        self.plot_colors = {
+            'Gryffindor': 'red',
+            'Hufflepuff': 'yellow',
+            'Ravenclaw': 'blue',
+            'Slytherin': 'green'
+        }
         
     def create_all_histogram(self):
         features_list = self._get_numeric_features()
+        
         for feature in features_list:
             self._create_histogram(feature)
+        
+        self._create_overview_histogram(features_list)
+    
+    def _create_overview_histogram(self, features_list):
+        n_features = len(features_list)
+        
+        cols = 4
+        rows = (n_features + cols - 1) // cols
+        
+        fig, axes = plt.subplots(rows, cols, figsize=(20, 5*rows))
+        fig.suptitle('All Hogwarts Subjects - Histogram Comparison', fontsize=16, fontweight='bold')
+        
+        if rows == 1:
+            axes = [axes] if cols == 1 else axes.flatten()
+        else:
+            axes = axes.flatten()
+        
+        for i, feature in enumerate(features_list):
+            ax = axes[i]
+            bins = self._create_bins(feature)
+            
+            for house in self.houses:
+                house_data = self.get_house_data(house, feature)
+                ax.hist(house_data, bins=bins, alpha=0.6, label=house, 
+                       color=self.plot_colors[house], edgecolor='black', linewidth=0.3)
+
+            ax.set_title(feature, fontsize=10, fontweight='bold')
+            ax.set_xlabel('Score', fontsize=8)
+            ax.set_ylabel('Students', fontsize=8)
+            ax.legend(fontsize=8)
+            ax.grid(True, alpha=0.3)
+        
+        for i in range(n_features, len(axes)):
+            axes[i].set_visible(False)
+        
+        plt.tight_layout()
+        plt.savefig(f"{self.output_dir}/ALL_SUBJECTS_OVERVIEW.png", 
+                   dpi=300, bbox_inches='tight')
+        plt.close()
     
     def _create_histogram(self, subject: str):
         bins = self._create_bins(subject)
-        print(bins)
         
         plt.figure(figsize=(12, 8))
-        
-        colors = {'Gryffindor' : 'red',
-                  'Hufflepuff' : 'yellow',
-                  'Ravenclaw' : 'blue',
-                  'Slytherin' : 'green'
-                  }
-        
-        for i, house in enumerate(self.houses):
+
+        for house in self.houses:
             house_data = self.get_house_data(house, subject)
-            print(f"{house} - {subject}: {len(house_data)} students")
-            print(f"Sample values: {house_data.head().tolist()}")
-            
             plt.hist(house_data, bins=bins, alpha=0.6, label=house, 
-                    color=colors[house], edgecolor='black', linewidth=0.5)
-        
+                    color=self.plot_colors[house], edgecolor='black', linewidth=0.5)
+
         plt.title(f"Histogram of {subject} - All Houses")
         plt.xlabel(subject)
         plt.ylabel("Number of students")
         plt.legend()
         plt.grid(True, alpha=0.3)
     
-        plt.savefig(f"{self.output_dir}/{subject}.png")
+        clean_name = subject.replace(' ', '_').replace('/', '_')
+        plt.savefig(f"{self.output_dir}/{clean_name}_individual.png")
+        plt.close()
     
     def _create_output_directory(self):
         if not os.path.exists(self.output_dir):
             os.makedirs(self.output_dir)
-            print(f"Created directory: {self.output_dir}")
-        else:
-            print(f"Directory {self.output_dir} already exists")
-
 
     def get_house_data(self, house: str, subject: str):
         house_mask = self.df['Hogwarts House'] == house
@@ -72,9 +106,6 @@ class Histogram:
         min_val = self._get_min(all_values)
         max_val = self._get_max(all_values)
         n_bins = 30
-        
-        print(f"{subject} - Range: [{min_val:.2f}, {max_val:.2f}]")
-        print(f"Total students: {len(all_values)}")
         
         bin_width = (max_val - min_val) / n_bins
         bins = [min_val + i * bin_width for i in range(n_bins + 1)]
@@ -103,7 +134,8 @@ class Histogram:
     
     def _get_numeric_features(self):
         numeric_cols = self.df.select_dtypes(include=[np.number]).columns.tolist()
-        numeric_cols.remove('Index')
+        if 'Index' in numeric_cols:
+            numeric_cols.remove('Index')
         return numeric_cols
 
 def main():
