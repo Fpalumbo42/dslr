@@ -1,3 +1,4 @@
+from utils import Utils
 import pandas as pd
 import numpy as np
 import os
@@ -25,7 +26,7 @@ class Describe():
         return max(12, min(optimal_width, 20))
 
     def print_data(self):
-        numeric_features = self._get_numeric_features()        
+        numeric_features = Utils.get_numeric_features(self.df)        
         col_width = self._calculate_optimal_column_width(len(numeric_features))
         
         print(f"{'':>10}", end="")
@@ -74,13 +75,13 @@ class Describe():
             'Count': self._get_count(feature_name),
             'Mean': self._get_mean(feature_name),
             'Std': self._get_std(feature_name),
-            'Min': self._get_min(feature_name),
+            'Min': Utils.get_min(self.df[feature_name].dropna()),
             '10%': self._get_percentile(feature_name, 10),
             '25%': self._get_percentile(feature_name, 25),
             '50%': self._get_percentile(feature_name, 50),
             '75%': self._get_percentile(feature_name, 75),
             '90%': self._get_percentile(feature_name, 90),
-            'Max': self._get_max(feature_name),
+            'Max': Utils.get_max(self.df[feature_name].dropna()),
             'Range': self._get_range(feature_name),
             'IQR': self._get_iqr(feature_name),
             'Variance': self._get_variance(feature_name),
@@ -89,11 +90,7 @@ class Describe():
             'MAD': self._get_median_absolute_deviation(feature_name),
             'Outliers': self._get_outliers_count(feature_name)
         }
-    
-    def _get_numeric_features(self):
-        numeric_cols = self.df.select_dtypes(include=[np.number]).columns.tolist()
-        return [col for col in numeric_cols if col != 'Index']
-    
+
     def _get_count(self, feature_name: str) -> float:
         column_data = self.df[feature_name].dropna()
         return float(len(column_data))
@@ -112,32 +109,6 @@ class Describe():
         mean = self._get_mean(feature_name)
         variance = sum((x - mean) ** 2 for x in column_data) / (len(column_data) - 1)
         return variance ** 0.5
-    
-    def _get_min(self, feature_name: str) -> float:
-        column_data = self.df[feature_name].dropna()
-        if len(column_data) == 0:
-            return float('nan')
-        
-        tmp = column_data[0]
-        
-        for value in column_data:
-            if value < tmp:
-                tmp = value
-        
-        return float(tmp)
-    
-    def _get_max(self, feature_name: str) -> float:
-        column_data = self.df[feature_name].dropna()
-        if len(column_data) == 0:
-            return float('nan')
-        
-        tmp = column_data[0]
-        
-        for value in column_data:
-            if value > tmp:
-                tmp = value
-        
-        return float(tmp)
     
     def _get_percentile(self, feature_name: str, percentile: float) -> float:
         column_data = self.df[feature_name].dropna()
@@ -171,8 +142,8 @@ class Describe():
         return std ** 2
 
     def _get_range(self, feature_name: str) -> float:
-        max_val = self._get_max(feature_name)
-        min_val = self._get_min(feature_name)
+        max_val = Utils.get_max(self.df[feature_name].dropna())
+        min_val = Utils.get_min(self.df[feature_name].dropna())
         if pd.isna(max_val) or pd.isna(min_val):
             return float('nan')
         return max_val - min_val

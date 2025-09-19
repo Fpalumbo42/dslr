@@ -1,3 +1,4 @@
+from utils import Utils
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -9,7 +10,7 @@ class Histogram:
         self.df = pd.read_csv(filepath)
         self.houses = ['Gryffindor', 'Hufflepuff', 'Ravenclaw', 'Slytherin']
         self.output_dir = "histograms"
-        self._create_output_directory()
+        Utils.create_output_directory(self.output_dir)
         self.plot_colors = {
             'Gryffindor': 'red',
             'Hufflepuff': 'yellow',
@@ -18,7 +19,7 @@ class Histogram:
         }
         
     def create_all_histogram(self):
-        features_list = self._get_numeric_features()
+        features_list = Utils.get_numeric_features(self.df)
         
         for feature in features_list:
             self._create_histogram(feature)
@@ -81,10 +82,6 @@ class Histogram:
         clean_name = subject.replace(' ', '_').replace('/', '_')
         plt.savefig(f"{self.output_dir}/{clean_name}_individual.png")
         plt.close()
-    
-    def _create_output_directory(self):
-        if not os.path.exists(self.output_dir):
-            os.makedirs(self.output_dir)
 
     def get_house_data(self, house: str, subject: str):
         house_mask = self.df['Hogwarts House'] == house
@@ -103,40 +100,14 @@ class Histogram:
         if not all_values:
             return []
             
-        min_val = self._get_min(all_values)
-        max_val = self._get_max(all_values)
+        min_val = Utils.get_min(all_values)
+        max_val = Utils.get_max(all_values)
         n_bins = 30
         
         bin_width = (max_val - min_val) / n_bins
         bins = [min_val + i * bin_width for i in range(n_bins + 1)]
         
         return bins
-    
-    def _get_min(self, values: list) -> float:
-        if len(values) == 0:
-            return float('nan')
-        
-        tmp = values[0]
-        for value in values:
-            if value < tmp:
-                tmp = value
-        return float(tmp)
-    
-    def _get_max(self, values: list) -> float:
-        if len(values) == 0:
-            return float('nan')
-        
-        tmp = values[0]
-        for value in values:
-            if value > tmp:
-                tmp = value
-        return float(tmp)
-    
-    def _get_numeric_features(self):
-        numeric_cols = self.df.select_dtypes(include=[np.number]).columns.tolist()
-        if 'Index' in numeric_cols:
-            numeric_cols.remove('Index')
-        return numeric_cols
 
 def main():
     histo = Histogram("datasets/dataset_train.csv")
