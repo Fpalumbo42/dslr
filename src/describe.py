@@ -6,7 +6,7 @@ from typing import List, Dict, Any
 
 class Describe():
     
-    def __init__(self, filepath: str):
+    def __init__(self, filepath: str) -> None:
         self.df = pd.read_csv(filepath)
         
     def _truncate_name(self, name: str, max_len: int = 15) -> str:
@@ -25,7 +25,7 @@ class Describe():
         optimal_width = available_width // feature_count
         return max(12, min(optimal_width, 20))
 
-    def print_data(self):
+    def print_data(self) -> None:
         numeric_features = Utils.get_numeric_features(self.df)        
         col_width = self._calculate_optimal_column_width(len(numeric_features))
         
@@ -213,7 +213,7 @@ class Describe():
         outliers = [x for x in column_data if x < lower_bound or x > upper_bound]
         return float(len(outliers))
 
-def main():
+def main() -> None:
     describe = Describe("datasets/dataset_train.csv")
     describe.print_data()
 
