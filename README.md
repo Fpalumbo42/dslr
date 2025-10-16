@@ -11,6 +11,9 @@ A machine learning project implementing logistic regression from scratch to sort
 - [Project Overview](#project-overview)
 - [Part 1: Data Analysis](#part-1-data-analysis)
 - [Part 2: Data Visualization](#part-2-data-visualization)
+  - [Histogram Analysis](#histogram-analysis)
+  - [Scatter Plot Analysis](#scatter-plot-analysis)
+  - [Pair Plot Analysis](#pair-plot-analysis)
 - [Usage](#usage)
 
 ---
@@ -86,22 +89,53 @@ Displays statistical information for all numerical features (like pandas' `descr
 
 ## Part 2: Data Visualization
 
-### `histogram.py`
+### Histogram Analysis
 
 **Question**: *Which Hogwarts course has a homogeneous score distribution between all four houses?*
 
-- Creates histograms for all numerical features
-- Each histogram shows all 4 houses overlaid with different colors
-- Homogeneous distribution = similar spread across houses
-- Helps identify features that don't strongly discriminate between houses
+#### Purpose
+Histograms help identify which features have similar distributions across all houses, indicating they may not be useful for distinguishing between houses.
 
-### `scatter_plot.py`
+#### Method
+- Creates overlaid histograms for all numerical features
+- Each histogram shows all 4 houses with different colors:
+  - 🔴 Gryffindor (red)
+  - 🟡 Hufflepuff (yellow)  
+  - 🔵 Ravenclaw (blue)
+  - 🟢 Slytherin (green)
+
+#### Results & Analysis
+
+![Histogram Comparison](readme_images/histograms.png)
+
+**Answer: Care of Magical Creatures**
+
+**Reasoning:**
+Looking at the histogram comparison, **Care of Magical Creatures** shows the most homogeneous distribution because:
+- All four house histograms overlap significantly
+- The distribution shapes are nearly identical across houses
+- The mean scores are centered around the same range (approximately -1 to 1)
+- No house shows a distinctly different pattern
+
+**Other observations:**
+- **Arithmancy**: Also shows high overlap, making it a poor discriminator
+- **Astronomy**: Shows excellent separation with distinct peaks for each house
+- **Defense Against the Dark Arts**: Clear separation between houses
+- **Charms**: Distinct distributions, especially Hufflepuff (yellow) is well separated
+
+---
+
+### Scatter Plot Analysis
 
 **Question**: *What are the two features that are similar?*
 
+#### Purpose
+Identifies highly correlated features (redundancy) by calculating Pearson correlation coefficients between all feature pairs.
+
+#### Method
 - Calculates **Pearson correlation coefficient** between all feature pairs
-- Identifies the pair with highest correlation (most similar features)
-- Displays only the most correlated pair
+- Identifies the pair with highest absolute correlation
+- Displays the most correlated pair
 
 **Pearson Correlation Formula**:
 ```
@@ -114,22 +148,112 @@ where:
 - r = 0: no correlation
 ```
 
-### `pair_plot.py`
+#### Results & Analysis
 
-**Question**: *Which features are you going to use for your logistic regression?*
+![Most Similar Features](readme_images/most_similar_features.png)
 
-- Creates a **scatter plot matrix** showing all feature combinations
-- Diagonal: histograms of individual features
-- Off-diagonal: scatter plots of feature pairs
-- Helps visualize:
-  - Feature separation by house (good for classification)
-  - Redundant features (high correlation)
-  - Feature distributions
+**Answer: Astronomy and Defense Against the Dark Arts**
 
-**Selection criteria**:
-- Features with good visual separation between houses
-- Avoid highly correlated features (redundancy)
-- Features with clear, non-overlapping distributions
+**Reasoning:**
+The scatter plot reveals a **nearly perfect linear relationship** between these two features:
+- Points form a clear diagonal line
+- All four houses follow the same linear trend
+- This indicates very high positive correlation (r ≈ 0.99)
+
+**Implication for feature selection:**
+Since these features are highly correlated, they provide **redundant information**. For logistic regression:
+- Using both would cause **multicollinearity** issues
+- The model becomes unstable and harder to interpret
+- **Decision**: Keep only ONE of these features (either Astronomy OR Defense Against the Dark Arts)
+
+---
+
+### Pair Plot Analysis
+
+**Question**: *From this visualization, which features are you going to use for your logistic regression?*
+
+#### Purpose
+A pair plot (scatter plot matrix) provides a comprehensive overview of all feature relationships simultaneously, helping identify:
+- Features with good class separation
+- Redundant/correlated features
+- Distribution characteristics
+
+#### Method
+- Creates a matrix of scatter plots for all feature combinations
+- **Diagonal**: Histograms showing individual feature distributions
+- **Off-diagonal**: Scatter plots showing relationships between feature pairs
+- Color-coded by house
+
+#### Visual Analysis
+
+![Pair Plot Matrix](readme_images/pair_plot_matrix.png)
+
+#### Feature Selection Criteria
+
+We analyze each feature based on:
+
+1. **Class Separation** (Primary criterion)
+   - ✅ Good: Distinct clusters for each house with minimal overlap
+   - ❌ Poor: All houses mixed together
+
+2. **Distribution Characteristics** (Secondary criterion)
+   - Look at diagonal histograms
+   - Different distributions per house = discriminative power
+
+3. **Avoid Redundancy**
+   - Eliminate highly correlated features
+
+#### Feature-by-Feature Analysis
+
+| Feature | Separation Quality | Decision | Reasoning |
+|---------|-------------------|----------|-----------|
+| **Astronomy** | ⭐⭐⭐⭐⭐ Excellent | ✅ KEEP | Clear vertical/horizontal separation, distinct clusters |
+| **Herbology** | ⭐⭐⭐⭐⭐ Excellent | ✅ KEEP | Very good separation, especially Gryffindor/Slytherin |
+| **Defense Against the Dark Arts** | ⭐⭐⭐⭐ Very Good | ❌ REMOVE | High correlation with Astronomy (redundant) |
+| **Ancient Runes** | ⭐⭐⭐⭐ Very Good | ✅ KEEP | Good horizontal separation between houses |
+| **Divination** | ⭐⭐⭐⭐ Very Good | ✅ KEEP | Clear clusters, good separation |
+| **Charms** | ⭐⭐⭐ Good | ✅ KEEP | Hufflepuff well separated, helps distinguish classes |
+| **Flying** | ⭐⭐⭐ Good | ✅ KEEP | Gryffindor distinct, adds complementary information |
+| **History of Magic** | ⭐⭐⭐ Moderate | ⚠️ OPTIONAL | Some separation but significant overlap |
+| **Transfiguration** | ⭐⭐ Poor | ❌ REMOVE | High overlap between houses |
+| **Arithmancy** | ⭐ Very Poor | ❌ REMOVE | Complete mixing of all houses, no discriminative power |
+| **Care of Magical Creatures** | ⭐⭐ Poor | ❌ REMOVE | Homogeneous distributions (confirmed by histogram) |
+| **Muggle Studies** | ⭐⭐ Poor | ❌ REMOVE | Too much overlap |
+| **Potions** | ⭐⭐ Poor | ❌ REMOVE | Mixed classes |
+
+#### Final Feature Selection
+
+**Selected Features for Logistic Regression:**
+
+1. ✅ **Astronomy** - Excellent separator
+2. ✅ **Herbology** - Excellent separator  
+3. ✅ **Ancient Runes** - Very good separator
+4. ✅ **Divination** - Very good separator
+5. ✅ **Charms** - Good separator
+6. ✅ **Flying** - Good separator, complements other features
+
+**Total: 6 features**
+
+**Excluded Features:**
+- ❌ **Defense Against the Dark Arts** - Redundant with Astronomy (high correlation)
+- ❌ **Arithmancy** - No discriminative power
+- ❌ **Care of Magical Creatures** - Homogeneous distribution
+- ❌ **Transfiguration, Muggle Studies, Potions** - Poor separation
+- ⚠️ **History of Magic** - Borderline, excluded to keep model parsimonious
+
+#### Why This Selection Works
+
+**Strengths:**
+- Each selected feature shows clear visual separation between at least 2-3 houses
+- No redundant features (removed Defense Against the Dark Arts)
+- Diverse separation patterns provide complementary information
+- Balance between model complexity and performance
+
+**Expected Performance:**
+With these 6 features, we should achieve >98% accuracy because:
+- Each house has unique "signature" across multiple features
+- Overlaps in one feature are compensated by clear separation in others
+- The combination provides sufficient information for reliable classification
 
 ---
 
@@ -142,13 +266,12 @@ python src/describe.py
 
 ### Data Visualization
 ```bash
-# Histogram - homogeneous distribution
+# Question 1: Homogeneous distribution
 python src/histogram.py
 
-# Scatter plot - most similar features
+# Question 2: Most similar features  
 python src/scatter_plot.py
 
-# Pair plot - feature selection
+# Question 3: Feature selection for logistic regression
 python src/pair_plot.py
 ```
-
