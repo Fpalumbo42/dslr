@@ -17,26 +17,44 @@ class TrainLogisticRegression():
         
     def train(self) -> None:
         print("Starting training process...")
-        data = preprocess_data(self.df)
-        print(f"Data shape after preprocessing: {data.shape}")
-        
-        # Placeholder for training logic
-        print("Training logistic regression model...")
-        # Here you would implement the actual training logic
-        
-        print("Training completed.")
+        X, y, normalization_params = preprocess_data(self.df)
+    
+    def sigmoid(self, z: np.ndarray) -> np.ndarray:
+        return 1 / (1 + np.exp(-z))
+    
+    def cost_function(self, X: np.ndarray, y: np.ndarray, theta: np.ndarray) -> float:
+        m = len(y)
+        z = X @ theta
+        h = self.sigmoid(z)
 
+        epsilon = 1e-7
+        h = np.clip(h, epsilon, 1 - epsilon)
+
+        # J(θ) = -(1/m) * Σ[y*log(h) + (1-y)*log(1-h)]
+        cost = -(1/m) * np.sum(y * np.log(h) + (1 - y) * np.log(1 - h))
+
+        return cost
 
 def preprocess_data(df):
-    print("Preprocessing data...")
-    df = df[SELECTED_FEATURES]
-    df = df.dropna()
+    X = df[SELECTED_FEATURES].copy()
+    print(X)
+    y = df['Hogwarts House'].copy()
+    print(y)
+    
+    mask = X.notna().all(axis=1) & y.notna()
+    X = X[mask]
+    y = y[mask]
+    
+    normalization_params = {}
     for feature in SELECTED_FEATURES:
-        mean = Utils.get_mean(df[feature])
-        std = Utils.get_std(df[feature])
-        df[feature] = (df[feature] - mean) / std
-    df.insert(0, 'bias', 1)
-    return df
+        mean = Utils.get_mean(X[feature])
+        std = Utils.get_std(X[feature])
+        normalization_params[feature] = {'mean': mean, 'std': std}
+        X[feature] = (X[feature] - mean) / std
+    
+    X.insert(0, 'bias', 1)
+    
+    return X, y, normalization_params
 
 def main() -> None:
     if len(sys.argv) != 2:
