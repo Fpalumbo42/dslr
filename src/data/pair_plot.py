@@ -1,3 +1,4 @@
+import sys
 from utils import Utils
 import pandas as pd
 import numpy as np
@@ -108,7 +109,11 @@ class PairPlot:
         return self.df[mask]
 
 def main():
-    pair_plot = PairPlot("datasets/dataset_train.csv")
+    if len(sys.argv) != 2:
+        print("Usage: python pair_plot.py <dataset.csv>")
+        sys.exit(1)
+
+    pair_plot = PairPlot(sys.argv[1])
     pair_plot.create_pair_plot()
 
 if __name__ == "__main__":

@@ -2,6 +2,7 @@ from utils import Utils
 import pandas as pd
 import numpy as np
 import os
+import sys
 from typing import List, Dict, Any
 
 class Describe():
@@ -214,7 +215,11 @@ class Describe():
         return float(len(outliers))
 
 def main() -> None:
-    describe = Describe("datasets/dataset_train.csv")
+    if len(sys.argv) != 2:
+        print("Usage: python describe.py <dataset.csv>")
+        sys.exit(1)
+
+    describe = Describe(sys.argv[1])
     describe.print_data()
 
 if __name__ == "__main__":

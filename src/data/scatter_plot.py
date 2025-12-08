@@ -1,3 +1,4 @@
+import sys
 from utils import Utils
 import pandas as pd
 import numpy as np
@@ -104,7 +105,11 @@ class ScatterPlot:
         return self.df[mask]  
 
 def main():
-    scatter = ScatterPlot("datasets/dataset_train.csv")
+    if len(sys.argv) != 2:
+        print("Usage: python scatter_plot.py <dataset.csv>")
+        sys.exit(1)
+    
+    scatter = ScatterPlot(sys.argv[1])
     scatter.find_and_plot_most_similar_features()
 
 if __name__ == "__main__":
