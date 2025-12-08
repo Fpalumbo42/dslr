@@ -1,4 +1,4 @@
-from data.utils import Utils
+from utils import Utils
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
