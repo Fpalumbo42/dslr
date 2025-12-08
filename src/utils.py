@@ -28,6 +28,20 @@ class Utils:
                 tmp = value
         return float(tmp)
 
+    @staticmethod
+    def get_mean(values: list) -> float:
+        if len(values) == 0:
+            return float('nan')
+        return float(sum(values)) / len(values)
+    
+    @staticmethod
+    def get_std(values: list) -> float:
+        if len(values) <= 1:
+            return float('nan')
+        mean = Utils.get_mean(values)
+        variance = sum((x - mean) ** 2 for x in values) / (len(values) - 1)
+        return variance ** 0.5
+
     @staticmethod    
     def get_numeric_features(df: pd.DataFrame) -> List[str]:
         numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()

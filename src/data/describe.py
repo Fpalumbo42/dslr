@@ -1,8 +1,10 @@
-from utils import Utils
+import sys
+from pathlib import Path
+sys.path.append(str(Path(__file__).resolve().parents[2]))
+from src.utils import Utils
 import pandas as pd
 import numpy as np
 import os
-import sys
 from typing import List, Dict, Any
 
 class Describe():
@@ -74,8 +76,8 @@ class Describe():
     def _calculate_stats(self, feature_name: str) -> Dict[str, float]:
         return {
             'Count': self._get_count(feature_name),
-            'Mean': self._get_mean(feature_name),
-            'Std': self._get_std(feature_name),
+            'Mean': Utils.get_mean(self.df[feature_name].dropna()),
+            'Std': Utils.get_std(self.df[feature_name].dropna()),
             'Min': Utils.get_min(self.df[feature_name].dropna()),
             '10%': self._get_percentile(feature_name, 10),
             '25%': self._get_percentile(feature_name, 25),
@@ -96,21 +98,6 @@ class Describe():
         column_data = self.df[feature_name].dropna()
         return float(len(column_data))
 
-    def _get_mean(self, feature_name: str) -> float:
-        column_data = self.df[feature_name].dropna()
-        if len(column_data) == 0:
-            return float('nan')
-        return sum(column_data) / len(column_data)
-    
-    def _get_std(self, feature_name: str) -> float:
-        column_data = self.df[feature_name].dropna()
-        if len(column_data) <= 1:
-            return float('nan')
-        
-        mean = self._get_mean(feature_name)
-        variance = sum((x - mean) ** 2 for x in column_data) / (len(column_data) - 1)
-        return variance ** 0.5
-    
     def _get_percentile(self, feature_name: str, percentile: float) -> float:
         column_data = self.df[feature_name].dropna()
         if len(column_data) == 0:
@@ -137,7 +124,7 @@ class Describe():
             return float(lower_value + weight * (upper_value - lower_value))
 
     def _get_variance(self, feature_name: str) -> float:
-        std = self._get_std(feature_name)
+        std = Utils.get_std(self.df[feature_name].dropna())
         if pd.isna(std):
             return float('nan')
         return std ** 2
@@ -161,8 +148,8 @@ class Describe():
         if len(column_data) < 3:
             return float('nan')
         
-        mean = self._get_mean(feature_name)
-        std = self._get_std(feature_name)
+        mean = Utils.get_mean(self.df[feature_name].dropna())
+        std = Utils.get_std(self.df[feature_name].dropna())
         if std == 0 or pd.isna(std):
             return float('nan')
         
@@ -175,8 +162,8 @@ class Describe():
         if len(column_data) < 4:
             return float('nan')
         
-        mean = self._get_mean(feature_name)
-        std = self._get_std(feature_name)
+        mean = Utils.get_mean(self.df[feature_name].dropna())
+        std = Utils.get_std(self.df[feature_name].dropna())
         if std == 0 or pd.isna(std):
             return float('nan')
         

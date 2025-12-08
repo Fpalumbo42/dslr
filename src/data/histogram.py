@@ -1,5 +1,7 @@
 import sys
-from utils import Utils
+from pathlib import Path
+sys.path.append(str(Path(__file__).resolve().parents[2]))
+from src.utils import Utils
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -91,15 +93,10 @@ class Histogram:
             all_data.extend(house_data.tolist())
         return all_data
 
-    def _calculate_mean(self, values: List[float]) -> float:
-        if len(values) == 0:
-            return float('nan')
-        return sum(values) / len(values)
-
     def _calculate_variance(self, values: List[float]) -> float:
         if len(values) <= 1:
             return float('nan')
-        mean = self._calculate_mean(values)
+        mean = Utils.get_mean(values)
         return sum((x - mean) ** 2 for x in values) / (len(values) - 1)
 
     def find_most_homogeneous_course(self) -> str:
@@ -113,7 +110,7 @@ class Histogram:
             for house in self.houses:
                 house_data = self.get_house_data(house, feature)
                 if len(house_data) > 0:
-                    house_means.append(self._calculate_mean(house_data.tolist()))
+                    house_means.append(Utils.get_mean(house_data.tolist()))
 
             if len(house_means) == 4:
                 variance_between_houses = self._calculate_variance(house_means)
