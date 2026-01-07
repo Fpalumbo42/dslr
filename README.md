@@ -1,277 +1,291 @@
-# DSLR - Data Science × Logistic Regression
+# DSLR - Logistic Regression from Scratch
 
-> *Harry Potter and the Data Scientist*
+Multi-class classifier (4 Hogwarts houses) using **one-vs-all logistic regression** with **gradient descent**.
 
-A machine learning project implementing logistic regression from scratch to sort Hogwarts students into their houses.
+**Goal**: ≥98% accuracy
+**Dataset**: 1600 students (training), 400 students (test), 6 features, 4 classes
 
----
-
-## Table of Contents
-
-- [Project Overview](#project-overview)
-- [Part 1: Data Analysis](#part-1-data-analysis)
-- [Part 2: Data Visualization](#part-2-data-visualization)
-  - [Histogram Analysis](#histogram-analysis)
-  - [Scatter Plot Analysis](#scatter-plot-analysis)
-  - [Pair Plot Analysis](#pair-plot-analysis)
-- [Usage](#usage)
+**Constraints**:
+- ❌ Forbidden: mean, std, min, max, percentile, describe, etc.
+- ❌ No sklearn for training (only accuracy_score for evaluation)
+- ✅ Implement everything manually
 
 ---
 
-## Project Overview
+## Part 1 & 2: Data Analysis & Visualization ✅
 
-The Sorting Hat has been bewitched! We must recreate its magic using machine learning to sort students into their houses based on their academic scores.
-
-**Goal**: Implement a multi-class classifier using **one-vs-all logistic regression** with **gradient descent** to achieve ≥98% accuracy.
-
-**Constraints**: 
-- No pre-built functions for statistics (mean, std, percentile, etc.)
-- No sklearn for training (only for evaluation)
-- All mathematical operations must be implemented manually
-
----
-
-## Part 1: Data Analysis
-
-### `describe.py`
-
-Displays statistical information for all numerical features (like pandas' `describe()`).
-
-#### Implemented Statistics:
-
-**Basic Statistics:**
-- **Count**: Number of non-null values
-  ```
-  count = n (length of data)
-  ```
-
-- **Mean**: Average value
-  ```
-  mean = (Σ xi) / n
-  ```
-
-- **Standard Deviation**: Measure of spread
-  ```
-  std = √[Σ(xi - mean)² / (n-1)]
-  ```
-  *Note: Uses Bessel's correction (n-1) for sample std*
-
-- **Min/Max**: Minimum and maximum values
-
-**Percentiles** (25%, 50%, 75%):
-- **50% (Median)**: Middle value when sorted
-- Uses linear interpolation for non-integer positions:
-  ```
-  index = (percentile/100) × (n-1)
-  if index is not integer:
-      value = lower + weight × (upper - lower)
-  ```
-
-**Additional Statistics** (Bonus):
-- **Range**: `max - min`
-- **IQR** (Interquartile Range): `Q3 - Q1`
-- **Variance**: `std²`
-- **Skewness**: Measure of asymmetry
-  ```
-  skewness = (1/n) × Σ[(xi - mean) / std]³
-  ```
-- **Kurtosis**: Measure of "tailedness"
-  ```
-  kurtosis = [(1/n) × Σ[(xi - mean) / std]⁴] - 3
-  ```
-- **MAD** (Median Absolute Deviation): Robust measure of spread
-  ```
-  MAD = median(|xi - median(x)|)
-  ```
-- **Outliers**: Count of values outside `[Q1 - 1.5×IQR, Q3 + 1.5×IQR]`
-
----
-
-## Part 2: Data Visualization
-
-### Histogram Analysis
-
-**Question**: *Which Hogwarts course has a homogeneous score distribution between all four houses?*
-
-#### Purpose
-Histograms help identify which features have similar distributions across all houses, indicating they may not be useful for distinguishing between houses.
-
-#### Method
-- Creates overlaid histograms for all numerical features
-- Each histogram shows all 4 houses with different colors:
-  - 🔴 Gryffindor (red)
-  - 🟡 Hufflepuff (yellow)  
-  - 🔵 Ravenclaw (blue)
-  - 🟢 Slytherin (green)
-
-#### Results & Analysis
-
-![Histogram Comparison](readme_images/histograms.png)
-
-**Answer: Care of Magical Creatures**
-
-**Reasoning:**
-Looking at the histogram comparison, **Care of Magical Creatures** shows the most homogeneous distribution because:
-- All four house histograms overlap significantly
-- The distribution shapes are nearly identical across houses
-- The mean scores are centered around the same range (approximately -1 to 1)
-- No house shows a distinctly different pattern
-
-**Other observations:**
-- **Arithmancy**: Also shows high overlap, making it a poor discriminator
-- **Astronomy**: Shows excellent separation with distinct peaks for each house
-- **Defense Against the Dark Arts**: Clear separation between houses
-- **Charms**: Distinct distributions, especially Hufflepuff (yellow) is well separated
-
----
-
-### Scatter Plot Analysis
-
-**Question**: *What are the two features that are similar?*
-
-#### Purpose
-Identifies highly correlated features (redundancy) by calculating Pearson correlation coefficients between all feature pairs.
-
-#### Method
-- Calculates **Pearson correlation coefficient** between all feature pairs
-- Identifies the pair with highest absolute correlation
-- Displays the most correlated pair
-
-**Pearson Correlation Formula**:
+**Key formula - Standard Deviation** (used everywhere):
 ```
-r = Σ[(xi - x̄)(yi - ȳ)] / √[Σ(xi - x̄)² × Σ(yi - ȳ)²]
+std = √[Σ(xi - mean)² / (n-1)]    # Bessel's correction (n-1)
+```
+
+**Visualization questions answered**:
+1. **Histogram**: Which course is homogeneous? → **Care of Magical Creatures**
+2. **Scatter Plot**: Which 2 features are similar? → **Astronomy & Defense Against the Dark Arts** (r ≈ 0.99)
+3. **Pair Plot**: Which features to use? → See below
+
+**Selected Features** (6):
+```
+✅ Astronomy         (excellent separation)
+✅ Herbology         (excellent separation)
+✅ Ancient Runes     (very good separation)
+✅ Divination        (very good separation)
+✅ Charms            (good separation)
+✅ Flying            (good separation, complements others)
+```
+
+**Excluded Features**:
+```
+❌ Defense Against the Dark Arts  (multicollinearity with Astronomy, r ≈ 0.99)
+❌ Care of Magical Creatures     (homogeneous distribution)
+❌ Others                         (poor class separation)
+```
+
+---
+
+## Part 3: Logistic Regression ⏳
+
+### Overview
+
+**Strategy**: One-vs-All (4 binary classifiers, one per house)
+
+```
+Training data: 1600 students × 6 features → 4 house classes
+Test data:     400 students × 6 features → predict houses
+```
+
+### Step 1: Preprocessing
+
+#### 1.1 Normalization (Z-Score)
+
+**Why?** Features have different scales (Astronomy ~500, Herbology ~1). Without normalization, gradient descent converges slowly.
+
+**Formula**:
+```
+x_norm = (x - μ) / σ
+```
+
+**Example** (using real values from logreg_model.json):
+
+For Astronomy (μ = 39.47, σ = 521.50):
+```
+Student with score 600:  x_norm = (600 - 39.47) / 521.50 = 1.075
+Student with score -200: x_norm = (-200 - 39.47) / 521.50 = -0.459
+```
+
+Result: All features have **mean=0, std=1** → fast convergence
+
+#### 1.2 Bias Term
+
+Add column of 1s at the beginning:
+```
+Original:  [x₁, x₂, x₃, x₄, x₅, x₆]
+With bias: [1, x₁, x₂, x₃, x₄, x₅, x₆]  ← 7 values total
+```
+
+Purpose: Allows decision boundary to shift (not forced through origin)
+
+---
+
+### Step 2: One-vs-All Strategy
+
+Train **4 separate binary classifiers**:
+
+| Classifier      | Question             | Labels              |
+|-----------------|----------------------|---------------------|
+| θ_Gryffindor    | Is Gryffindor?       | Gryff=1, Others=0  |
+| θ_Hufflepuff    | Is Hufflepuff?       | Huff=1, Others=0   |
+| θ_Ravenclaw     | Is Ravenclaw?        | Rav=1, Others=0    |
+| θ_Slytherin     | Is Slytherin?        | Sly=1, Others=0    |
+
+Each classifier learns **θ** with 7 weights (1 bias + 6 features)
+
+---
+
+### Step 3: Core Math
+
+#### 3.1 Sigmoid Function
+
+**Formula**:
+```
+g(z) = 1 / (1 + e^(-z))
+```
+
+**Purpose**: Convert any number to probability [0, 1]
+
+**Examples**:
+```
+z = 0   → g(0) = 0.5      (50%)
+z = 2   → g(2) ≈ 0.88     (88%)
+z = -2  → g(-2) ≈ 0.12    (12%)
+z = 5   → g(5) ≈ 0.993    (99.3%)
+z = -5  → g(-5) ≈ 0.007   (0.7%)
+```
+
+Behavior: Large positive z → 1, Large negative z → 0, z=0 → 0.5
+
+#### 3.2 Hypothesis Function
+
+**Formula**:
+```
+h(x) = sigmoid(θᵀ · x) = 1 / (1 + e^(-θᵀx))
+```
+
+**Example** (using real trained weights from logreg_model.json):
+
+Gryffindor classifier θ = [-3.39, 1.27, -1.27, -2.23, 2.67]
+Student features x = [1, 0.5, -0.3, 1.2, 0.8]
+
+```
+z = θᵀ · x = (-3.39×1) + (1.27×0.5) + (-1.27×-0.3) + (-2.23×1.2) + (2.67×0.8)
+z = -3.39 + 0.635 + 0.381 - 2.676 + 2.136 = -2.914
+
+h(x) = 1 / (1 + e^2.914) ≈ 0.05  →  5% probability Gryffindor
+```
+
+#### 3.3 Cost Function (Binary Cross-Entropy)
+
+**Formula**:
+```
+J(θ) = -(1/m) × Σ[y·log(h(x)) + (1-y)·log(1-h(x))]
+```
+
+where m = 1600 students, y = actual label (0 or 1), h(x) = predicted probability
+
+**Example** (3 students):
+
+| Student   | y   | h(x) | Cost contribution    |
+|-----------|-----|------|----------------------|
+| Harry     | 1   | 0.95 | -log(0.95) = 0.051  |
+| Hermione  | 1   | 0.70 | -log(0.70) = 0.357  |
+| Draco     | 0   | 0.05 | -log(0.95) = 0.051  |
+
+```
+J(θ) = -(1/3) × [0.051 + 0.357 + 0.051] = 0.153
+```
+
+**Interpretation**:
+- Lower cost = better model
+- Perfect predictions → J(θ) = 0
+- Wrong predictions → J(θ) increases
+
+**Why log?** Penalizes confident wrong predictions heavily + creates convex optimization surface
+
+---
+
+### Step 4: Gradient Descent
+
+#### 4.1 Gradient
+
+**Formula**:
+```
+∇J(θ) = (1/m) × Xᵀ · (h - y)
+```
 
 where:
-- r ∈ [-1, 1]
-- r = 1: perfect positive correlation
-- r = -1: perfect negative correlation
-- r = 0: no correlation
+- X = feature matrix (1600 × 7)
+- h = predictions vector
+- y = labels vector
+
+#### 4.2 Update Rule
+
+**Formula**:
+```
+θ := θ - α × ∇J(θ)
 ```
 
-#### Results & Analysis
+where α = learning rate (0.1 in our implementation)
 
-![Most Similar Features](readme_images/most_similar_features.png)
+**Example iteration** (simplified, 1 weight):
 
-**Answer: Astronomy and Defense Against the Dark Arts**
+```
+Iteration 0:
+  θ = 0 (initialization)
+  J(θ) = 0.693
+  ∇J = 0.25
+  θ_new = 0 - 0.1 × 0.25 = -0.025
 
-**Reasoning:**
-The scatter plot reveals a **nearly perfect linear relationship** between these two features:
-- Points form a clear diagonal line
-- All four houses follow the same linear trend
-- This indicates very high positive correlation (r ≈ 0.99)
+Iteration 1:
+  θ = -0.025
+  J(θ) = 0.680
+  ∇J = 0.23
+  θ_new = -0.025 - 0.1 × 0.23 = -0.048
 
-**Implication for feature selection:**
-Since these features are highly correlated, they provide **redundant information**. For logistic regression:
-- Using both would cause **multicollinearity** issues
-- The model becomes unstable and harder to interpret
-- **Decision**: Keep only ONE of these features (either Astronomy OR Defense Against the Dark Arts)
+... continues ...
+
+Iteration 1000:
+  θ = -3.39
+  J(θ) = 0.020
+  ∇J ≈ 0.000001  ← converged!
+```
+
+#### 4.3 Early Stopping
+
+Stop when cost barely changes:
+```python
+if |J_previous - J_current| < tolerance (1e-6):
+    break
+```
+
+**Example**:
+```
+Iteration 0    : Cost = 0.6931
+Iteration 100  : Cost = 0.2451
+Iteration 500  : Cost = 0.0453
+Iteration 1200 : Cost = 0.0201
+Iteration 1201 : Cost = 0.0201  ← difference < 1e-6
+✓ Converged!
+```
 
 ---
 
-### Pair Plot Analysis
+### Step 5: Making Predictions
 
-**Question**: *From this visualization, which features are you going to use for your logistic regression?*
+For a new student in test set:
 
-#### Purpose
-A pair plot (scatter plot matrix) provides a comprehensive overview of all feature relationships simultaneously, helping identify:
-- Features with good class separation
-- Redundant/correlated features
-- Distribution characteristics
+1. **Normalize** features using saved μ/σ from training
+2. **Add bias** (1 at beginning)
+3. **Compute probabilities** for each house:
+   ```
+   P(Gryffindor)  = sigmoid(θ_Gryff · x) = 0.85
+   P(Hufflepuff)  = sigmoid(θ_Huff · x)  = 0.10
+   P(Ravenclaw)   = sigmoid(θ_Rav · x)   = 0.03
+   P(Slytherin)   = sigmoid(θ_Sly · x)   = 0.02
+   ```
+4. **Predict**: argmax([0.85, 0.10, 0.03, 0.02]) = **Gryffindor**
 
-#### Method
-- Creates a matrix of scatter plots for all feature combinations
-- **Diagonal**: Histograms showing individual feature distributions
-- **Off-diagonal**: Scatter plots showing relationships between feature pairs
-- Color-coded by house
+---
 
-#### Visual Analysis
+## Formula Summary
 
-![Pair Plot Matrix](readme_images/pair_plot_matrix.png)
-
-#### Feature Selection Criteria
-
-We analyze each feature based on:
-
-1. **Class Separation** (Primary criterion)
-   - ✅ Good: Distinct clusters for each house with minimal overlap
-   - ❌ Poor: All houses mixed together
-
-2. **Distribution Characteristics** (Secondary criterion)
-   - Look at diagonal histograms
-   - Different distributions per house = discriminative power
-
-3. **Avoid Redundancy**
-   - Eliminate highly correlated features
-
-#### Feature-by-Feature Analysis
-
-| Feature | Separation Quality | Decision | Reasoning |
-|---------|-------------------|----------|-----------|
-| **Astronomy** | ⭐⭐⭐⭐⭐ Excellent | ✅ KEEP | Clear vertical/horizontal separation, distinct clusters |
-| **Herbology** | ⭐⭐⭐⭐⭐ Excellent | ✅ KEEP | Very good separation, especially Gryffindor/Slytherin |
-| **Defense Against the Dark Arts** | ⭐⭐⭐⭐ Very Good | ❌ REMOVE | High correlation with Astronomy (redundant) |
-| **Ancient Runes** | ⭐⭐⭐⭐ Very Good | ✅ KEEP | Good horizontal separation between houses |
-| **Divination** | ⭐⭐⭐⭐ Very Good | ✅ KEEP | Clear clusters, good separation |
-| **Charms** | ⭐⭐⭐ Good | ✅ KEEP | Hufflepuff well separated, helps distinguish classes |
-| **Flying** | ⭐⭐⭐ Good | ✅ KEEP | Gryffindor distinct, adds complementary information |
-| **History of Magic** | ⭐⭐⭐ Moderate | ⚠️ OPTIONAL | Some separation but significant overlap |
-| **Transfiguration** | ⭐⭐ Poor | ❌ REMOVE | High overlap between houses |
-| **Arithmancy** | ⭐ Very Poor | ❌ REMOVE | Complete mixing of all houses, no discriminative power |
-| **Care of Magical Creatures** | ⭐⭐ Poor | ❌ REMOVE | Homogeneous distributions (confirmed by histogram) |
-| **Muggle Studies** | ⭐⭐ Poor | ❌ REMOVE | Too much overlap |
-| **Potions** | ⭐⭐ Poor | ❌ REMOVE | Mixed classes |
-
-#### Final Feature Selection
-
-**Selected Features for Logistic Regression:**
-
-1. ✅ **Astronomy** - Excellent separator
-2. ✅ **Herbology** - Excellent separator  
-3. ✅ **Ancient Runes** - Very good separator
-4. ✅ **Divination** - Very good separator
-5. ✅ **Charms** - Good separator
-6. ✅ **Flying** - Good separator, complements other features
-
-**Total: 6 features**
-
-**Excluded Features:**
-- ❌ **Defense Against the Dark Arts** - Redundant with Astronomy (high correlation)
-- ❌ **Arithmancy** - No discriminative power
-- ❌ **Care of Magical Creatures** - Homogeneous distribution
-- ❌ **Transfiguration, Muggle Studies, Potions** - Poor separation
-- ⚠️ **History of Magic** - Borderline, excluded to keep model parsimonious
-
-#### Why This Selection Works
-
-**Strengths:**
-- Each selected feature shows clear visual separation between at least 2-3 houses
-- No redundant features (removed Defense Against the Dark Arts)
-- Diverse separation patterns provide complementary information
-- Balance between model complexity and performance
-
-**Expected Performance:**
-With these 6 features, we should achieve >98% accuracy because:
-- Each house has unique "signature" across multiple features
-- Overlaps in one feature are compensated by clear separation in others
-- The combination provides sufficient information for reliable classification
+| Concept          | Formula                                        | Purpose                      |
+|------------------|------------------------------------------------|------------------------------|
+| Normalization    | `(x - μ) / σ`                                  | Scale features               |
+| Sigmoid          | `1 / (1 + e^(-z))`                            | Convert to probability [0,1] |
+| Hypothesis       | `h(x) = sigmoid(θᵀx)`                         | Predict probability          |
+| Cost             | `J(θ) = -(1/m)Σ[y·log(h) + (1-y)·log(1-h)]` | Measure error                |
+| Gradient         | `∇J = (1/m)Xᵀ(h - y)`                        | Direction to update θ        |
+| Update           | `θ := θ - α·∇J`                               | Improve weights              |
+| One-vs-All       | Train 4 binary classifiers                    | Handle 4 classes             |
+| Prediction       | `argmax(probabilities)`                       | Choose most likely class     |
 
 ---
 
 ## Usage
 
-### Data Analysis
 ```bash
-python src/describe.py
-```
+# Part 1: Data Analysis
+python src/data/describe.py datasets/dataset_train.csv
 
-### Data Visualization
-```bash
-# Question 1: Homogeneous distribution
-python src/histogram.py
+# Part 2: Visualization
+python src/data/histogram.py
+python src/data/scatter_plot.py
+python src/data/pair_plot.py
 
-# Question 2: Most similar features  
-python src/scatter_plot.py
+# Part 3: Training & Prediction
+python src/logistic_regression/logreg_train.py datasets/dataset_train.csv
+python src/logistic_regression/logreg_predict.py datasets/dataset_test.csv logreg_model.json
 
-# Question 3: Feature selection for logistic regression
-python src/pair_plot.py
+# Evaluation
+python evaluate.py
 ```
