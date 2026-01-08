@@ -19,7 +19,6 @@ class PredictLogisticRegression():
             self.weights[house] = self.model["weights"][house]
         
         print(json.dumps(self.weights, sort_keys=True, indent=4 ))
-            
 
         self.features = []
         for feat in self.model["normalization_params"]:
@@ -80,14 +79,6 @@ class PredictLogisticRegression():
         
         self.save_result(pred)
         print(pred)
-            
-                
-         
-        
-        
-        
-        
-        
 
 def main() -> None:
     if len(sys.argv) != 3:

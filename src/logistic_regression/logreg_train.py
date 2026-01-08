@@ -19,11 +19,9 @@ class TrainLogisticRegression():
         print("Starting training process...")
         X, y, normalization_params = preprocess_data(self.df)
 
-        # Convert to numpy arrays for vectorized operations
         X_array = X.values
         y_array = y.values
 
-        # Train 4 binary classifiers (one per house)
         weights = self.train_one_vs_all(X_array, y_array)
         self.save_model(weights, normalization_params)
         print(f"weights: {weights}")
@@ -41,13 +39,11 @@ class TrainLogisticRegression():
         for house in houses:
             print(f"\n--- Training classifier for {house} vs All ---")
 
-            # Create binary labels: 1 for this house, 0 for all others
             y_binary = (y == house).astype(int)
 
             num_in_house = np.sum(y_binary)
             print(f"Students in {house}: {num_in_house} / {len(y)}")
 
-            # Train binary classifier for this house
             theta = self.gradient_descent(X, y_binary)
             weights_dict[house] = theta
 
@@ -59,15 +55,12 @@ class TrainLogisticRegression():
     def cost_function(self, features: np.ndarray, labels: np.ndarray, weights: np.ndarray) -> float:
         num_samples = len(labels)
 
-        # Compute predictions: h = sigmoid(X @ theta)
         scores = features @ weights
         predictions = self.sigmoid(scores)
 
-        # Clip to avoid log(0)
         epsilon = 1e-7
         predictions = np.clip(predictions, epsilon, 1 - epsilon)
 
-        # Binary cross-entropy
         cost = -(1/num_samples) * np.sum(
             labels * np.log(predictions) + (1 - labels) * np.log(1 - predictions)
         )
@@ -75,13 +68,12 @@ class TrainLogisticRegression():
         return cost
 
     def gradient_descent(self, X, y_binary, learning_rate=0.1, iterations=100000, tolerance=1e-6):
-        m, n = X.shape # number of samples (students), number of features
+        m, n = X.shape
         theta = np.zeros(n)
         cost_history = []
         previous_cost = float('inf')
 
         for i in range(iterations):
-            # Forward pass: compute predictions
             h = self.sigmoid(X @ theta)
 
             # Compute gradient: ∇J(θ) = (1/m) * X^T @ (h - y)
@@ -90,7 +82,6 @@ class TrainLogisticRegression():
             # Update weights: θ := θ - α * ∇J(θ)
             theta = theta - learning_rate * gradient
 
-            # Calculate cost for monitoring and convergence check
             current_cost = self.cost_function(X, y_binary, theta)
             cost_history.append(current_cost)
 
@@ -129,16 +120,13 @@ class TrainLogisticRegression():
         print(f"Model saved to {model_path}")
 
 def preprocess_data(df):
-    # Select features and labels
     X = df[SELECTED_FEATURES].copy()
     y = df['Hogwarts House'].copy()
 
-    # Remove rows with missing values
     mask = X.notna().all(axis=1) & y.notna()
     X = X[mask]
     y = y[mask]
 
-    # Normalize features: z-score normalization (x - μ) / σ
     normalization_params = {}
     for feature in SELECTED_FEATURES:
         mean = Utils.get_mean(X[feature])
@@ -146,7 +134,6 @@ def preprocess_data(df):
         normalization_params[feature] = {'mean': mean, 'std': std}
         X[feature] = (X[feature] - mean) / std
 
-    # Add bias term (intercept)
     X.insert(0, 'bias', 1)
 
     return X, y, normalization_params
