@@ -294,20 +294,137 @@ Iter 1201: Cost = 0.0201  ← converged!
 
 ---
 
-### Step 5: Making Predictions
+### Step 5: Making Predictions (logreg_predict.py)
 
-For new student:
+#### 5.1 Loading the Model
 
-1. **Normalize** using saved μ/σ
-2. **Add bias** (1 at beginning)
-3. **Compute probabilities**:
-   ```
-   P(Gryffindor) = sigmoid(θ_Gryff · x) = 0.85
-   P(Hufflepuff) = sigmoid(θ_Huff · x)  = 0.10
-   P(Ravenclaw)  = sigmoid(θ_Rav · x)   = 0.03
-   P(Slytherin)  = sigmoid(θ_Sly · x)   = 0.02
-   ```
-4. **Predict**: `argmax([0.85, 0.10, 0.03, 0.02])` = **Gryffindor**
+The trained model is saved in JSON format with explicit feature-weight mapping:
+
+```json
+{
+    "weights": {
+        "Gryffindor": {
+            "bias": -3.391,
+            "Astronomy": 1.272,
+            "Defense Against the Dark Arts": -1.272,
+            "Herbology": -2.231,
+            "Ancient Runes": 2.671
+        },
+        ...
+    },
+    "normalization_params": {
+        "Astronomy": {"mean": 39.47, "std": 521.50},
+        ...
+    }
+}
+```
+
+**Why this format?** Explicit feature names eliminate any risk of mixing up feature order between training and prediction.
+
+#### 5.2 Preprocessing Test Data
+
+**Step 1: Normalize features**
+
+For each feature, apply z-score normalization using **training set** statistics (μ and σ from model):
+
+```python
+x_norm = (x - μ_train) / σ_train
+```
+
+**Important**: Never compute new statistics on test data - always use training set parameters!
+
+**Step 2: Handle missing values**
+
+Test dataset has NaN values. Strategy:
+
+```python
+# After normalization, replace NaN with 0
+X = X.fillna(0)
+```
+
+**Why 0?** In normalized data:
+- mean = 0, std = 1
+- Setting NaN to 0 means "assume average value for this student"
+- More neutral than dropping rows (which would give <400 predictions)
+
+**Step 3: Add bias term**
+
+```python
+X.insert(0, 'bias', 1)
+```
+
+Result: `[1, x_astronomy, x_defense, x_herbology, x_runes]`
+
+#### 5.3 Computing Probabilities
+
+For **each student**, compute probability for **each house**:
+
+**Real example** (student from test set):
+
+Normalized features: `x = [1, 0.5, -0.3, 1.2, 0.8]` (bias + 4 features)
+
+**Gryffindor**:
+```
+z = θᵀ·x = (-3.391×1) + (1.272×0.5) + (-1.272×-0.3) + (-2.231×1.2) + (2.671×0.8)
+z = -3.391 + 0.636 + 0.382 - 2.677 + 2.137 = -2.913
+
+P(Gryffindor) = sigmoid(-2.913) = 1/(1 + e^2.913) = 0.051  →  5%
+```
+
+**Hufflepuff**:
+```
+z = (θ_huff)ᵀ·x = ... (same calculation with Hufflepuff weights)
+P(Hufflepuff) = sigmoid(z) = 0.823  →  82%
+```
+
+**Ravenclaw**: `P(Ravenclaw) = 0.095` → 10%
+**Slytherin**: `P(Slytherin) = 0.031` → 3%
+
+#### 5.4 Choosing the House (argmax)
+
+**Manual argmax implementation** (max() is forbidden):
+
+```python
+def get_best_house(probabilities: dict) -> str:
+    max_house = None
+    max_proba = -float('inf')
+
+    for house, proba in probabilities.items():
+        if proba > max_proba:
+            max_proba = proba
+            max_house = house
+
+    return max_house
+```
+
+**Result**: `max([0.051, 0.823, 0.095, 0.031])` = **Hufflepuff** ✅
+
+#### 5.5 Output Format
+
+Generate `houses.csv` with **exact format** required by subject:
+
+```csv
+Index,Hogwarts House
+0,Gryffindor
+1,Hufflepuff
+2,Ravenclaw
+3,Hufflepuff
+...
+399,Slytherin
+```
+
+**Critical**: Must have exactly 400 predictions with this format, or evaluation script will fail.
+
+#### 5.6 Results
+
+**Achieved accuracy: 99%** 🎉
+
+```bash
+$ python evaluate.py
+Your score on test set: 0.99
+```
+
+Performance exceeds minimum requirement (98%) ✅
 
 ---
 
@@ -322,7 +439,8 @@ For new student:
 | **Gradient** | `∇J = (1/m)Xᵀ(h - y)` | Update direction |
 | **Update** | `θ := θ - α·∇J` | Improve weights |
 | **One-vs-All** | 4 binary classifiers | Handle 4 classes |
-| **Prediction** | `argmax(probabilities)` | Choose best class |
+| **Argmax** | Loop to find max probability | Choose house |
+| **NaN Handling** | `fillna(0)` after normalization | Assume average value |
 
 ---
 

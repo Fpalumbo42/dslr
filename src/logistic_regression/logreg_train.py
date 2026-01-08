@@ -8,7 +8,7 @@ import os
 import json
 from typing import List, Dict, Tuple
 
-SELECTED_FEATURES = ['Astronomy', 'Defense Against the Dark Arts', 'Herbology', 'Ancient Runes']
+SELECTED_FEATURES = ['Astronomy', 'Herbology', 'Ancient Runes', "Divination", "Charms", "Flying"]
 
 class TrainLogisticRegression():
 
