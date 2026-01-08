@@ -17,8 +17,6 @@ class PredictLogisticRegression():
         self.weights = {}
         for house in self.model["weights"]:
             self.weights[house] = self.model["weights"][house]
-        
-        print(json.dumps(self.weights, sort_keys=True, indent=4 ))
 
         self.features = []
         for feat in self.model["normalization_params"]:
@@ -41,7 +39,6 @@ class PredictLogisticRegression():
 
         X = X.fillna(0)
         X.insert(0, 'bias', 1)
-        print(f"My x {X}")
         
         return X
     
@@ -56,15 +53,16 @@ class PredictLogisticRegression():
         
         return max
     
-    def save_result(self, pred):
+    def save_prediction(self, pred):
+        result_path = 'houses.csv'
         result = pd.DataFrame({'Hogwarts House': pred})
-        result.to_csv('houses.csv', index_label='Index')
-        
+        result.to_csv(result_path, index_label='Index')
+        print(f"Prediction saved to {result_path}")
+
     def predict(self):
         X = self.normalization()
         
         pred = []
-        print(X)
         
         for index, student in X.iterrows():
             proba = {}
@@ -73,12 +71,11 @@ class PredictLogisticRegression():
                 for feature in self.features:
                     z += self.weights[house][feature] * student[feature]
                 proba[house] = 1 / (1 + np.exp(-z))
-            print(json.dumps(proba, indent=4))
+
             predicted_house = self.get_best_house(proba)
             pred.append(predicted_house)
         
-        self.save_result(pred)
-        print(pred)
+        self.save_prediction(pred)
 
 def main() -> None:
     if len(sys.argv) != 3:
