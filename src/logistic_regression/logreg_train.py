@@ -35,6 +35,8 @@ class TrainLogisticRegression():
 
         print(f"\n=== Training One-vs-All classifiers ===")
         print(f"Total students: {len(y)}\n")
+        print(f"my x {X}")
+
 
         for house in houses:
             print(f"\n--- Training classifier for {house} vs All ---")
@@ -106,8 +108,20 @@ class TrainLogisticRegression():
         return theta
     
     def save_model(self, weights: Dict[str, np.ndarray], normalization_params: Dict[str, Dict[str, float]], model_path: str = "logreg_model.json") -> None:
+        
+        weights_feat = {}
+        for house in weights:
+            house_weights = {}
+            
+            house_weights["bias"] = float(weights[house][0])
+            
+            for i, feature_name in enumerate(SELECTED_FEATURES):
+                house_weights[feature_name] = float(weights[house][i + 1])
+            
+            weights_feat[house] = house_weights
+        
         model_data = {
-            'weights': {house: weights[house].tolist() for house in weights},
+            'weights': weights_feat,
             'normalization_params': normalization_params
         }
         with open(model_path, 'w') as f:
