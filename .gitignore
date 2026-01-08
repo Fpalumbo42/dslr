@@ -7,3 +7,5 @@ __pycache__
 .DS_Store
 CLAUDE.md
 TRAINING_GUIDE.md
+logreg_model.json
+houses.csv

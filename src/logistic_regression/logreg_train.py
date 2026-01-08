@@ -17,15 +17,13 @@ class TrainLogisticRegression():
 
     def train(self) -> None:
         print("Starting training process...")
-        X, y, normalization_params = preprocess_data(self.df)
+        X, y, normalization_params = self.preprocess_data(self.df)
 
         X_array = X.values
         y_array = y.values
 
         weights = self.train_one_vs_all(X_array, y_array)
         self.save_model(weights, normalization_params)
-        print(f"weights: {weights}")
-
 
     def train_one_vs_all(self, X: np.ndarray, y: np.ndarray) -> Dict[str, np.ndarray]:
         houses = ['Gryffindor', 'Hufflepuff', 'Ravenclaw', 'Slytherin']
@@ -33,8 +31,6 @@ class TrainLogisticRegression():
 
         print(f"\n=== Training One-vs-All classifiers ===")
         print(f"Total students: {len(y)}\n")
-        print(f"my x {X}")
-
 
         for house in houses:
             print(f"\n--- Training classifier for {house} vs All ---")
@@ -91,7 +87,7 @@ class TrainLogisticRegression():
 
             # Early stopping: check if converged
             if abs(previous_cost - current_cost) < tolerance:
-                print(f"  ✓ Converged at iteration {i}!")
+                print(f"Converged at iteration {i}")
                 break
 
             previous_cost = current_cost
@@ -119,24 +115,24 @@ class TrainLogisticRegression():
             json.dump(model_data, f, indent=4)
         print(f"Model saved to {model_path}")
 
-def preprocess_data(df):
-    X = df[SELECTED_FEATURES].copy()
-    y = df['Hogwarts House'].copy()
+    def preprocess_data(self, df):
+        X = df[SELECTED_FEATURES].copy()
+        y = df['Hogwarts House'].copy()
 
-    mask = X.notna().all(axis=1) & y.notna()
-    X = X[mask]
-    y = y[mask]
+        mask = X.notna().all(axis=1) & y.notna()
+        X = X[mask]
+        y = y[mask]
 
-    normalization_params = {}
-    for feature in SELECTED_FEATURES:
-        mean = Utils.get_mean(X[feature])
-        std = Utils.get_std(X[feature])
-        normalization_params[feature] = {'mean': mean, 'std': std}
-        X[feature] = (X[feature] - mean) / std
+        normalization_params = {}
+        for feature in SELECTED_FEATURES:
+            mean = Utils.get_mean(X[feature])
+            std = Utils.get_std(X[feature])
+            normalization_params[feature] = {'mean': mean, 'std': std}
+            X[feature] = (X[feature] - mean) / std
 
-    X.insert(0, 'bias', 1)
+        X.insert(0, 'bias', 1)
 
-    return X, y, normalization_params
+        return X, y, normalization_params
 
 def main() -> None:
     if len(sys.argv) != 2:
