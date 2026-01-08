@@ -1,9 +1,12 @@
-from utils import Utils
+import sys
+from pathlib import Path
+sys.path.append(str(Path(__file__).resolve().parents[2]))
+from src.utils import Utils
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import os
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 class Histogram:
 
@@ -89,6 +92,33 @@ class Histogram:
             house_data = self.get_house_data(house, subject)
             all_data.extend(house_data.tolist())
         return all_data
+
+    def _calculate_variance(self, values: List[float]) -> float:
+        if len(values) <= 1:
+            return float('nan')
+        mean = Utils.get_mean(values)
+        return sum((x - mean) ** 2 for x in values) / (len(values) - 1)
+
+    def find_most_homogeneous_course(self) -> str:
+        features_list = Utils.get_numeric_features(self.df)
+
+        min_variance = float('inf')
+        most_homogeneous = None
+
+        for feature in features_list:
+            house_means = []
+            for house in self.houses:
+                house_data = self.get_house_data(house, feature)
+                if len(house_data) > 0:
+                    house_means.append(Utils.get_mean(house_data.tolist()))
+
+            if len(house_means) == 4:
+                variance_between_houses = self._calculate_variance(house_means)
+                if variance_between_houses < min_variance:
+                    min_variance = variance_between_houses
+                    most_homogeneous = feature
+
+        return most_homogeneous
         
     def _create_bins(self, subject: str) -> List[float]:
         all_values = self.get_all_houses_data(subject)
@@ -106,8 +136,15 @@ class Histogram:
         return bins
 
 def main() -> None:
-    histo = Histogram("datasets/dataset_train.csv")
+    if len(sys.argv) != 2:
+        print("Usage: python histogram.py <dataset.csv>")
+        sys.exit(1)
+
+    histo = Histogram(sys.argv[1])
     histo.create_all_histogram()
+
+    most_homogeneous = histo.find_most_homogeneous_course()
+    print(f"\nMost homogeneous course: {most_homogeneous}")
 
 if __name__ == "__main__":
     main()
