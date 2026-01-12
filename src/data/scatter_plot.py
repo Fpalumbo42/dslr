@@ -3,9 +3,7 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parents[2]))
 from src.utils import Utils
 import pandas as pd
-import numpy as np
 import matplotlib.pyplot as plt
-import os
 
 class ScatterPlot:
     def __init__(self, filepath: str):

@@ -1,14 +1,29 @@
+# **************************************************************************** #
+#                                                                              #
+#                                                         :::      ::::::::    #
+#    logreg_train.py                                    :+:      :+:    :+:    #
+#                                                     +:+ +:+         +:+      #
+#    By: npatron <npatron@student.42.fr>            +#+  +:+       +#+         #
+#                                                 +#+#+#+#+#+   +#+            #
+#    Created: 2026/01/12 12:43:46 by npatron           #+#    #+#              #
+#    Updated: 2026/01/12 12:48:18 by npatron          ###   ########.fr        #
+#                                                                              #
+# **************************************************************************** #
+
+
 import sys
+from typing import Dict
 from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parents[2]))
-from src.utils import Utils
-import pandas as pd
-import numpy as np
-import os
 import json
-from typing import List, Dict, Tuple
+import numpy as np
+import pandas as pd
+from src.utils import Utils
 
-SELECTED_FEATURES = ['Astronomy', 'Herbology', 'Ancient Runes', "Divination", "Charms", "Flying"]
+
+SELECTED_FEATURES = ['Astronomy', 'Herbology',
+                     'Ancient Runes', "Divination", "Charms", "Flying"]
+
 
 class TrainLogisticRegression():
 
@@ -29,7 +44,7 @@ class TrainLogisticRegression():
         houses = ['Gryffindor', 'Hufflepuff', 'Ravenclaw', 'Slytherin']
         weights_dict = {}
 
-        print(f"\n=== Training One-vs-All classifiers ===")
+        print("\n=== Training One-vs-All classifiers ===")
         print(f"Total students: {len(y)}\n")
 
         for house in houses:
@@ -58,7 +73,8 @@ class TrainLogisticRegression():
         predictions = np.clip(predictions, epsilon, 1 - epsilon)
 
         cost = -(1/num_samples) * np.sum(
-            labels * np.log(predictions) + (1 - labels) * np.log(1 - predictions)
+            labels * np.log(predictions) + (1 - labels) *
+            np.log(1 - predictions)
         )
 
         return cost
@@ -93,20 +109,20 @@ class TrainLogisticRegression():
             previous_cost = current_cost
 
         return theta
-    
+
     def save_model(self, weights: Dict[str, np.ndarray], normalization_params: Dict[str, Dict[str, float]], model_path: str = "logreg_model.json") -> None:
-        
+
         weights_feat = {}
         for house in weights:
             house_weights = {}
-            
+
             house_weights["bias"] = float(weights[house][0])
-            
+
             for i, feature_name in enumerate(SELECTED_FEATURES):
                 house_weights[feature_name] = float(weights[house][i + 1])
-            
+
             weights_feat[house] = house_weights
-        
+
         model_data = {
             'weights': weights_feat,
             'normalization_params': normalization_params
@@ -134,12 +150,14 @@ class TrainLogisticRegression():
 
         return X, y, normalization_params
 
+
 def main() -> None:
     if len(sys.argv) != 2:
         print("Usage: python logreg_train.py <dataset.csv>")
         sys.exit(1)
     trainer = TrainLogisticRegression(sys.argv[1])
     trainer.train()
+
 
 if __name__ == "__main__":
     main()
