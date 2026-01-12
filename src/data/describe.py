@@ -96,7 +96,10 @@ class Describe():
 
     def _get_count(self, feature_name: str) -> float:
         column_data = self.df[feature_name].dropna()
-        return float(len(column_data))
+        len = 0
+        for element in column_data:
+            len += 1
+        return float(len)
 
     def _get_percentile(self, feature_name: str, percentile: float) -> float:
         column_data = self.df[feature_name].dropna()
