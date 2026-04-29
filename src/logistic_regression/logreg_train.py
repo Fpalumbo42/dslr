@@ -6,10 +6,9 @@
 #    By: npatron <npatron@student.42.fr>            +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2026/01/12 12:43:46 by npatron           #+#    #+#              #
-#    Updated: 2026/01/12 12:48:18 by npatron          ###   ########.fr        #
+#    Updated: 2026/04/29 16:12:57 by npatron          ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
-
 
 import sys
 from typing import Dict
@@ -20,10 +19,16 @@ import numpy as np
 import pandas as pd
 from src.utils import Utils
 
+EPSILON = 1e-15 
 
 SELECTED_FEATURES = ['Astronomy', 'Herbology',
                      'Ancient Runes', "Divination", "Charms", "Flying"]
 
+MAX_ITERATIONS = 100000
+
+LEARNING_RATE = 0.1
+
+TOLERANCE = 1e-6
 
 class TrainLogisticRegression():
 
@@ -69,8 +74,7 @@ class TrainLogisticRegression():
         scores = features @ weights
         predictions = self.sigmoid(scores)
 
-        epsilon = 1e-7
-        predictions = np.clip(predictions, epsilon, 1 - epsilon)
+        predictions = np.clip(predictions, EPSILON, 1 - EPSILON)
 
         cost = -(1/num_samples) * np.sum(
             labels * np.log(predictions) + (1 - labels) *
@@ -79,34 +83,23 @@ class TrainLogisticRegression():
 
         return cost
 
-    def gradient_descent(self, X, y_binary, learning_rate=0.1, iterations=100000, tolerance=1e-6):
+    def gradient_descent(self, X: np.ndarray, y: np.ndarray) -> np.ndarray:
         m, n = X.shape
         theta = np.zeros(n)
-        cost_history = []
         previous_cost = float('inf')
 
-        for i in range(iterations):
-            h = self.sigmoid(X @ theta)
+        for i in range(MAX_ITERATIONS):
+            predictions = self.sigmoid(np.dot(X, theta))
+            gradient = np.dot(X.T, predictions - y) / m
 
-            # Compute gradient: ∇J(θ) = (1/m) * X^T @ (h - y)
-            gradient = (1/m) * (X.T @ (h - y_binary))
+            theta -= LEARNING_RATE * gradient
 
-            # Update weights: θ := θ - α * ∇J(θ)
-            theta = theta - learning_rate * gradient
-
-            current_cost = self.cost_function(X, y_binary, theta)
-            cost_history.append(current_cost)
-
-            # Display progress
             if i % 100 == 0:
-                print(f"  Iteration {i}: Cost = {current_cost:.4f}")
-
-            # Early stopping: check if converged
-            if abs(previous_cost - current_cost) < tolerance:
-                print(f"Converged at iteration {i}")
-                break
-
-            previous_cost = current_cost
+                cost = self.cost_function(X, y, theta)
+                if abs(previous_cost - cost) < TOLERANCE:
+                    print(f"Cost={cost:.4f}")
+                    return theta
+                previous_cost = cost
 
         return theta
 
@@ -146,7 +139,7 @@ class TrainLogisticRegression():
             normalization_params[feature] = {'mean': mean, 'std': std}
             X[feature] = (X[feature] - mean) / std
 
-        X.insert(0, 'bias', 1)
+        X.insert(0, 'bias', 1) 
 
         return X, y, normalization_params
 
